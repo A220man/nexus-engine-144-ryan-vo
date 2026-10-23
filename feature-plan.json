@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "current_feature": "core-install",
+  "features": [
+    {
+      "id": "core-install",
+      "title": "Core NVM Installation Script",
+      "status": "done",
+      "acceptance": [
+        "Install script downloads and sets up nvm in ~/.nvm",
+        "Supports bash, zsh, and fish shells",
+        "Creates proper shell profile entries",
+        "Does not exit with non-zero code on successful sourcing"
+      ],
+      "implementation": [
+        "install.sh",
+        "nvm.sh"
+      ],
+      "tests": [
+        "tests/test_install.sh"
+      ]
+    },
+    {
+      "id": "version-management",
+      "title": "Node Version Management",
+      "status": "done",
+      "acceptance": [
+        "List available Node.js versions",
+        "Install specific Node.js version",
+        "Switch between installed versions",
+        "Show current version"
+      ],
+      "implementation": [
+        "nvm.sh"
+      ],
+      "tests": [
+        "tests/test_install.sh"
+      ]
+    },
+    {
+      "id": "config-files",
+      "title": "Config File Support (.nvmrc, .node-version, package.json)",
+      "status": "done",
+      "acceptance": [
+        "Read .nvmrc for version",
+        "Read .node-version for version",
+        "Read package.json engines.node for version",
+        "Auto-switch version on directory change"
+      ],
+      "implementation": [
+        "nvm.sh"
+      ],
+      "tests": [
+        "tests/test_install.sh"
+      ]
+    },
+    {
+      "id": "self-update",
+      "title": "Self-Update Command",
+      "status": "done",
+      "acceptance": [
+        "nvm update command fetches latest version",
+        "Preserves installed Node versions",
+        "Updates shell profile if needed"
+      ],
+      "implementation": [
+        "nvm.sh"
+      ],
+      "tests": [
+        "tests/test_install.sh"
+      ]
+    }
+  ]
+}

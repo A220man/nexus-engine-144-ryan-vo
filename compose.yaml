@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: nexus-engine-nvm-backend
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - NVM_DIR=/home/appuser/.nvm
+      - PYTHONPATH=/app
+    volumes:
+      - nvm_data:/home/appuser/.nvm
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: nexus-engine-nvm-frontend
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  nvm_data:
+    driver: local
+
+networks:
+  default:
+    name: nexus-engine-nvm-network
