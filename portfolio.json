@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "name": "nexus-engine-144-ryan-vo",
+  "owner": "A220man",
+  "email": "ryandtvo@gmail.com",
+  "domain": "AI/ML developer tools",
+  "summary": "Work in progress: nexus-engine-144-ryan-vo",
+  "workflows": [
+    "Install and switch Node.js versions with nvm install/use",
+    "Auto-detect project Node version from .nvmrc, .node-version, or package.json",
+    "Self-update NVM while preserving installed Node versions"
+  ],
+  "auth": "none",
+  "llm_providers": [],
+  "status": "work-in-progress"
+}

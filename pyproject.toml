@@ -1,0 +1,31 @@
+[project]
+name = "nexus-engine-nvm"
+version = "1.0.0"
+description = "POSIX-compliant Node Version Manager"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Ryan Vo", email = "ryandtvo@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Unix Shell",
+    "Topic :: Software Development :: Version Control",
+    "Topic :: System :: Software Distribution"
+]
+keywords = ["node", "nodejs", "version-manager", "nvm", "posix", "shell"]
+requires-python = ">=3.8"
+
+[project.urls]
+Homepage = "https://github.com/A220man/nexus-engine-144-ryan-vo"
+Repository = "https://github.com/A220man/nexus-engine-144-ryan-vo"
+Issues = "https://github.com/A220man/nexus-engine-144-ryan-vo/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["nexus_engine_nvm*"]
