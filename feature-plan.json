@@ -69,6 +69,22 @@
       "tests": [
         "tests/test_install.sh"
       ]
+    },
+    {
+      "id": "lts-aliases",
+      "title": "LTS Alias Support (lts/*, lts/hydrogen, lts/iron, etc.)",
+      "status": "in_progress",
+      "acceptance": [
+        "Resolve lts/* to latest LTS version",
+        "Resolve named LTS aliases (hydrogen, iron, jod, gallium, fermium, erbium, dubnium, carbon, boron, argon)",
+        "Works with nvm install, nvm use, and config files (.nvmrc, .node-version, package.json)"
+      ],
+      "implementation": [
+        "nvm.sh"
+      ],
+      "tests": [
+        "tests/test_install.sh"
+      ]
     }
   ]
 }

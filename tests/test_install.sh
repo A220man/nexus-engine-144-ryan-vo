@@ -211,6 +211,18 @@ test_version_normalize() {
     # We'll test via nvm install/ls behavior
     assert_equal "0" "0" "Version normalization placeholder"
 }
+# Test: LTS alias resolution
+test_lts_resolution() {
+    unset NVM_LOADED
+    . ./nvm.sh 2>/dev/null
+    # Test that function exists and handles non-LTS versions
+    result=$(nvm_resolve_lts_alias "20.10.0")
+    assert_equal "20.10.0" "$result" "LTS resolution passes through non-LTS versions"
+    
+    result=$(nvm_resolve_lts_alias "v18.17.0")
+    assert_equal "v18.17.0" "$result" "LTS resolution passes through v-prefixed versions"
+}
+# Test: version normalization
 
 # Main test runner
 main() {
@@ -230,6 +242,7 @@ main() {
     test_nvm_ls
     test_nvm_install_invalid
     test_nvm_use_not_installed
+    test_lts_resolution
     test_version_normalize
     
     teardown

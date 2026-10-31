@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "Nexus Engine NVM - Frontend UI for Node Version Manager",
   "type": "module",
-  "author": "Ryan Vo <ryandtvo@gmail.com>",
+  "author": {
+    "name": "Ryan Vo",
+    "email": "ryandtvo@gmail.com",
+    "url": "https://github.com/A220man"
+  },
   "license": "MIT",
   "scripts": {
     "dev": "vite",
