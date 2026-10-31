@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
 ## 1.0.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
@@ -39,3 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Non-root installation
 - Downloads only from configurable official mirrors
 - No credentials or secrets in codebase
+
+## [Unreleased]
+
+### Added
+- LTS alias resolution for `nvm install` and `nvm use` commands
+- Support for `lts/*` (latest LTS), `lts/hydrogen` (v18), `lts/iron` (v20), `lts/jod` (v22), and other named LTS releases
+- LTS alias resolution in config files (`.nvmrc`, `.node-version`, `package.json` engines.node)
+- Test for LTS alias resolution in test suite
+

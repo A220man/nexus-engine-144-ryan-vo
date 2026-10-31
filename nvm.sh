@@ -116,6 +116,40 @@ nvm_ls_remote() {
 nvm_ls_remote_lts() {
     curl -sL "$NVM_NODEJS_ORG_MIRROR/" | grep -oP 'v\d+\.\d+\.\d+' | grep -E 'v(4|6|8|10|12|14|16|18|20|22)\.' | sort -Vu
 }
+# Utility: resolve LTS alias to version
+# Supports: lts/*, lts/hydrogen, lts/iron, lts/jod, etc.
+nvm_resolve_lts_alias() {
+    alias="$1"
+    case "$alias" in
+        lts/*)
+            # Extract LTS name
+            lts_name="${alias#lts/}"
+            if [ "$lts_name" = "*" ]; then
+                # Get latest LTS
+                nvm_ls_remote_lts | head -1
+                return
+            fi
+            # Map LTS names to version patterns
+            case "$lts_name" in
+                hydrogen) pattern="v18\." ;;
+                iron) pattern="v20\." ;;
+                jod) pattern="v22\." ;;
+                gallium) pattern="v16\." ;;
+                fermium) pattern="v14\." ;;
+                erbium) pattern="v12\." ;;
+                dubnium) pattern="v10\." ;;
+                carbon) pattern="v8\." ;;
+                boron) pattern="v6\." ;;
+                argon) pattern="v4\." ;;
+                *) pattern="v${lts_name}\." ;;
+            esac
+            nvm_ls_remote_lts | grep -E "^$pattern" | head -1
+            ;;
+        *)
+            echo "$alias"
+            ;;
+    esac
+}
 
 # Install Node.js version
 nvm_install() {
@@ -125,6 +159,9 @@ nvm_install() {
         nvm_err "Version required. Usage: nvm install <version>"
         return 1
     fi
+    
+    # Resolve LTS aliases (e.g., lts/hydrogen, lts/*, lts/iron)
+    version=$(nvm_resolve_lts_alias "$version")
     
     version=$(nvm_normalize_version "$version")
     
@@ -214,6 +251,9 @@ nvm_use() {
         nvm_info "Found version $version from config file"
     fi
     
+    # Resolve LTS aliases (e.g., lts/hydrogen, lts/*, lts/iron)
+    version=$(nvm_resolve_lts_alias "$version")
+    
     version=$(nvm_normalize_version "$version")
     
     # Check if installed
@@ -241,6 +281,7 @@ nvm_find_version_from_config() {
         if [ -f "$dir/.nvmrc" ]; then
             version=$(cat "$dir/.nvmrc" 2>/dev/null | tr -d '[:space:]')
             if [ -n "$version" ]; then
+                version=$(nvm_resolve_lts_alias "$version")
                 echo "$version"
                 return 0
             fi
@@ -250,6 +291,7 @@ nvm_find_version_from_config() {
         if [ -f "$dir/.node-version" ]; then
             version=$(cat "$dir/.node-version" 2>/dev/null | tr -d '[:space:]')
             if [ -n "$version" ]; then
+                version=$(nvm_resolve_lts_alias "$version")
                 echo "$version"
                 return 0
             fi
@@ -259,6 +301,7 @@ nvm_find_version_from_config() {
         if [ -f "$dir/package.json" ]; then
             version=$(grep -o '"node"[[:space:]]*:[[:space:]]*"[^"]*"' "$dir/package.json" 2>/dev/null | head -1 | sed 's/.*"node"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
             if [ -n "$version" ]; then
+                version=$(nvm_resolve_lts_alias "$version")
                 echo "$version"
                 return 0
             fi
