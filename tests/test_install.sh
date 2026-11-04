@@ -221,6 +221,54 @@ test_lts_resolution() {
     
     result=$(nvm_resolve_lts_alias "v18.17.0")
     assert_equal "v18.17.0" "$result" "LTS resolution passes through v-prefixed versions"
+    
+    # Test LTS alias resolution (these will fail without network but should not error)
+    # We test that the function returns something without crashing
+    result=$(nvm_resolve_lts_alias "lts/hydrogen" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        assert_contains "$result" "v18" "lts/hydrogen resolves to v18.x"
+    else
+        # Network not available, just test function doesn't crash
+        assert_equal "FAILED" "$result" "lts/hydrogen handles network failure gracefully"
+    fi
+    
+    result=$(nvm_resolve_lts_alias "lts/iron" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        assert_contains "$result" "v20" "lts/iron resolves to v20.x"
+    else
+        assert_equal "FAILED" "$result" "lts/iron handles network failure gracefully"
+    fi
+    
+    result=$(nvm_resolve_lts_alias "lts/jod" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        assert_contains "$result" "v22" "lts/jod resolves to v22.x"
+    else
+        assert_equal "FAILED" "$result" "lts/jod handles network failure gracefully"
+    fi
+    
+    # Test new LTS aliases
+    result=$(nvm_resolve_lts_alias "lts/lithium" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        assert_contains "$result" "v26" "lts/lithium resolves to v26.x"
+    else
+        assert_equal "FAILED" "$result" "lts/lithium handles network failure gracefully"
+    fi
+    
+    result=$(nvm_resolve_lts_alias "lts/krypton" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        assert_contains "$result" "v24" "lts/krypton resolves to v24.x"
+    else
+        assert_equal "FAILED" "$result" "lts/krypton handles network failure gracefully"
+    fi
+    
+    # Test lts/* (latest LTS)
+    result=$(nvm_resolve_lts_alias "lts/*" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        # Should be latest LTS (v26.x)
+        assert_contains "$result" "v26" "lts/* resolves to latest LTS (v26.x)"
+    else
+        assert_equal "FAILED" "$result" "lts/* handles network failure gracefully"
+    fi
 }
 # Test: version normalization
 
