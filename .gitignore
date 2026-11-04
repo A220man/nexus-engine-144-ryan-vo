@@ -57,3 +57,11 @@ yarn-error.log*
 # Package manager locks (optional - commit if desired)
 # package-lock.json
 # yarn.lock
+.turbo/
+**/data/media/
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3-wal
+*.sqlite3-shm

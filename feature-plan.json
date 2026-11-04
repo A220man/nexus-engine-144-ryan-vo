@@ -73,10 +73,10 @@
     {
       "id": "lts-aliases",
       "title": "LTS Alias Support (lts/*, lts/hydrogen, lts/iron, etc.)",
-      "status": "in_progress",
+      "status": "done",
       "acceptance": [
         "Resolve lts/* to latest LTS version",
-        "Resolve named LTS aliases (hydrogen, iron, jod, gallium, fermium, erbium, dubnium, carbon, boron, argon)",
+        "Resolve named LTS aliases (lithium, krypton, jod, iron, hydrogen, gallium, fermium, erbium, dubnium, carbon, boron, argon)",
         "Works with nvm install, nvm use, and config files (.nvmrc, .node-version, package.json)"
       ],
       "implementation": [

@@ -114,10 +114,10 @@ nvm_ls_remote() {
 
 # List LTS versions
 nvm_ls_remote_lts() {
-    curl -sL "$NVM_NODEJS_ORG_MIRROR/" | grep -oP 'v\d+\.\d+\.\d+' | grep -E 'v(4|6|8|10|12|14|16|18|20|22)\.' | sort -Vu
+    curl -sL "$NVM_NODEJS_ORG_MIRROR/" | grep -oP 'v\d+\.\d+\.\d+' | grep -E 'v(4|6|8|10|12|14|16|18|20|22|24|26)\.' | sort -Vu
 }
 # Utility: resolve LTS alias to version
-# Supports: lts/*, lts/hydrogen, lts/iron, lts/jod, etc.
+# Supports: lts/*, lts/lithium, lts/krypton, lts/jod, lts/iron, lts/hydrogen, lts/gallium, lts/fermium, lts/erbium, lts/dubnium, lts/carbon, lts/boron, lts/argon
 nvm_resolve_lts_alias() {
     alias="$1"
     case "$alias" in
@@ -125,15 +125,17 @@ nvm_resolve_lts_alias() {
             # Extract LTS name
             lts_name="${alias#lts/}"
             if [ "$lts_name" = "*" ]; then
-                # Get latest LTS
-                nvm_ls_remote_lts | head -1
+                # Get latest LTS (last in version-sorted list)
+                nvm_ls_remote_lts | tail -1
                 return
             fi
             # Map LTS names to version patterns
             case "$lts_name" in
-                hydrogen) pattern="v18\." ;;
-                iron) pattern="v20\." ;;
+                lithium) pattern="v26\." ;;
+                krypton) pattern="v24\." ;;
                 jod) pattern="v22\." ;;
+                iron) pattern="v20\." ;;
+                hydrogen) pattern="v18\." ;;
                 gallium) pattern="v16\." ;;
                 fermium) pattern="v14\." ;;
                 erbium) pattern="v12\." ;;
@@ -401,7 +403,7 @@ Usage:
   nvm update                       Update NVM to latest version
 
 Config Files (auto-detected by 'nvm use' without arguments):
-  .nvmrc              Node version (e.g., "18.17.0" or "lts/hydrogen")
+  .nvmrc              Node version (e.g., "18.17.0" or "lts/hydrogen", "lts/iron", "lts/jod", "lts/krypton", "lts/lithium", "lts/*")
   .node-version       Node version (same format as .nvmrc)
   package.json        engines.node field (e.g., ">=18.0.0")
 
@@ -413,6 +415,8 @@ Environment Variables:
 Examples:
   nvm install 20.10.0
   nvm install lts/hydrogen
+  nvm install lts/iron
+  nvm install lts/lithium
   nvm use 20
   nvm use              # Auto-detect from config files
   nvm alias default 20

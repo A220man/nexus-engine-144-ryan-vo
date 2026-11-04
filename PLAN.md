@@ -65,11 +65,11 @@ Tests: `tests/test_install.sh`
 
 ### lts-aliases — LTS Alias Support (lts/*, lts/hydrogen, lts/iron, etc.)
 
-Status: in_progress
+Status: done
 
 Acceptance:
 - Resolve lts/* to latest LTS version
-- Resolve named LTS aliases (hydrogen, iron, jod, gallium, fermium, erbium, dubnium, carbon, boron, argon)
+- Resolve named LTS aliases (lithium, krypton, jod, iron, hydrogen, gallium, fermium, erbium, dubnium, carbon, boron, argon)
 - Works with nvm install, nvm use, and config files (.nvmrc, .node-version, package.json)
 
 Implementation: `nvm.sh`
