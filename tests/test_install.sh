@@ -203,6 +203,32 @@ test_nvm_use_not_installed() {
     assert_equal "3" "$exit_code" "nvm use non-existent version returns exit code 3 (issue #1985)"
 }
 
+# Test: nvm ls-remote works
+test_nvm_ls_remote() {
+    unset NVM_LOADED
+    . ./nvm.sh 2>/dev/null
+    output=$(nvm ls-remote 2>&1)
+    # Should not error, may be empty if network not available
+    assert_equal "0" "$?" "nvm ls-remote exits with code 0"
+    # If network available, should contain versions
+    if [ -n "$output" ]; then
+        assert_contains "$output" "v" "nvm ls-remote shows versions"
+    fi
+}
+
+# Test: nvm ls-remote --lts works
+test_nvm_ls_remote_lts() {
+    unset NVM_LOADED
+    . ./nvm.sh 2>/dev/null
+    output=$(nvm ls-remote --lts 2>&1)
+    # Should not error, may be empty if network not available
+    assert_equal "0" "$?" "nvm ls-remote --lts exits with code 0"
+    # If network available, should contain versions
+    if [ -n "$output" ]; then
+        assert_contains "$output" "v" "nvm ls-remote --lts shows versions"
+    fi
+}
+
 # Test: version normalization
 test_version_normalize() {
     unset NVM_LOADED
@@ -289,7 +315,10 @@ main() {
     test_nvm_current
     test_nvm_ls
     test_nvm_install_invalid
-    test_nvm_use_not_installed
+    test_nvm_ls_remote
+
+    test_nvm_ls_remote_lts
+
     test_lts_resolution
     test_version_normalize
     

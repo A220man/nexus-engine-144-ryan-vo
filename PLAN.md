@@ -76,3 +76,17 @@ Implementation: `nvm.sh`
 
 Tests: `tests/test_install.sh`
 
+### remote-api — Node.js Releases API Integration
+
+Status: done
+
+Acceptance:
+- nvm ls-remote uses Node.js releases API (index.json) instead of HTML parsing
+- nvm ls-remote --lts filters LTS versions from API data
+- More reliable and faster than HTML parsing
+- Works with nvm install, nvm use, and config files
+
+Implementation: `nvm.sh`
+
+Tests: `tests/test_install.sh`
+

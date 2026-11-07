@@ -85,6 +85,23 @@
       "tests": [
         "tests/test_install.sh"
       ]
+    },
+    {
+      "id": "remote-api",
+      "title": "Node.js Releases API Integration",
+      "status": "done",
+      "acceptance": [
+        "nvm ls-remote uses Node.js releases API (index.json) instead of HTML parsing",
+        "nvm ls-remote --lts filters LTS versions from API data",
+        "More reliable and faster than HTML parsing",
+        "Works with nvm install, nvm use, and config files"
+      ],
+      "implementation": [
+        "nvm.sh"
+      ],
+      "tests": [
+        "tests/test_install.sh"
+      ]
     }
   ]
 }
