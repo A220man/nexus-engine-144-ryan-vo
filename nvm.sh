@@ -108,13 +108,23 @@ nvm_current() {
 
 # List available remote versions
 nvm_ls_remote() {
-    # Fetch from nodejs.org
-    curl -sL "$NVM_NODEJS_ORG_MIRROR/" | grep -oP 'v\d+\.\d+\.\d+' | sort -Vu
+    # Fetch from Node.js releases API (JSON)
+    curl -sL "$NVM_NODEJS_ORG_MIRROR/index.json" | \
+        grep -o '"version":"[^"]*"' | \
+        sed 's/"version":"//;s/"//' | \
+        sort -Vu
 }
 
 # List LTS versions
 nvm_ls_remote_lts() {
-    curl -sL "$NVM_NODEJS_ORG_MIRROR/" | grep -oP 'v\d+\.\d+\.\d+' | grep -E 'v(4|6|8|10|12|14|16|18|20|22|24|26)\.' | sort -Vu
+    # Fetch from Node.js releases API (JSON) and filter for LTS versions
+    curl -sL "$NVM_NODEJS_ORG_MIRROR/index.json" | \
+        grep -o '"version":"[^"]*","date":"[^"]*","files":\[[^]]*\],"npm":"[^"]*","v8":"[^"]*","uv":"[^"]*","zlib":"[^"]*","openssl":"[^"]*","modules":"[^"]*","lts":"[^"]*","security":[^}]*' | \
+        grep '"lts":"[^"]*"' | \
+        grep -v '"lts":false' | \
+        grep -v '"lts":""' | \
+        sed 's/.*"version":"\([^"]*\)".*/\1/' | \
+        sort -Vu
 }
 # Utility: resolve LTS alias to version
 # Supports: lts/*, lts/lithium, lts/krypton, lts/jod, lts/iron, lts/hydrogen, lts/gallium, lts/fermium, lts/erbium, lts/dubnium, lts/carbon, lts/boron, lts/argon
