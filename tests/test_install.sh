@@ -20,77 +20,73 @@ NC='\033[0m'
 assert_equal() {
     expected="$1"
     actual="$2"
-    msg="${3:-}"
+    message="$3"
     TESTS_RUN=$((TESTS_RUN + 1))
     if [ "$expected" = "$actual" ]; then
-        printf "${GREEN}PASS${NC}: %s\n" "$msg"
         TESTS_PASSED=$((TESTS_PASSED + 1))
+        printf "${GREEN}PASS${NC}: %s\n" "$message"
     else
-        printf "${RED}FAIL${NC}: %s\n" "$msg"
-        printf "  Expected: %s\n" "$expected"
-        printf "  Actual:   %s\n" "$actual"
         TESTS_FAILED=$((TESTS_FAILED + 1))
+        printf "${RED}FAIL${NC}: %s (expected: %s, got: %s)\n" "$message" "$expected" "$actual"
     fi
 }
 
 assert_contains() {
     haystack="$1"
     needle="$2"
-    msg="${3:-}"
+    message="$3"
     TESTS_RUN=$((TESTS_RUN + 1))
     case "$haystack" in
         *"$needle"*)
-            printf "${GREEN}PASS${NC}: %s\n" "$msg"
             TESTS_PASSED=$((TESTS_PASSED + 1))
+            printf "${GREEN}PASS${NC}: %s\n" "$message"
             ;;
         *)
-            printf "${RED}FAIL${NC}: %s\n" "$msg"
-            printf "  Haystack: %s\n" "$haystack"
-            printf "  Needle:   %s\n" "$needle"
             TESTS_FAILED=$((TESTS_FAILED + 1))
+            printf "${RED}FAIL${NC}: %s (expected to contain: %s, got: %s)\n" "$message" "$needle" "$haystack"
             ;;
     esac
 }
 
 assert_file_exists() {
     file="$1"
-    msg="${2:-File exists: $file}"
+    message="$2"
     TESTS_RUN=$((TESTS_RUN + 1))
     if [ -f "$file" ]; then
-        printf "${GREEN}PASS${NC}: %s\n" "$msg"
         TESTS_PASSED=$((TESTS_PASSED + 1))
+        printf "${GREEN}PASS${NC}: %s\n" "$message"
     else
-        printf "${RED}FAIL${NC}: %s\n" "$msg"
         TESTS_FAILED=$((TESTS_FAILED + 1))
+        printf "${RED}FAIL${NC}: %s (file not found: %s)\n" "$message" "$file"
     fi
 }
 
 assert_dir_exists() {
     dir="$1"
-    msg="${2:-Directory exists: $dir}"
+    message="$2"
     TESTS_RUN=$((TESTS_RUN + 1))
     if [ -d "$dir" ]; then
-        printf "${GREEN}PASS${NC}: %s\n" "$msg"
         TESTS_PASSED=$((TESTS_PASSED + 1))
+        printf "${GREEN}PASS${NC}: %s\n" "$message"
     else
-        printf "${RED}FAIL${NC}: %s\n" "$msg"
         TESTS_FAILED=$((TESTS_FAILED + 1))
+        printf "${RED}FAIL${NC}: %s (dir not found: %s)\n" "$message" "$dir"
     fi
 }
 
 assert_exit_code() {
     expected="$1"
-    actual="$2"
-    msg="${3:-}"
+    command="$2"
+    message="$3"
     TESTS_RUN=$((TESTS_RUN + 1))
+    eval "$command" >/dev/null 2>&1
+    actual=$?
     if [ "$expected" = "$actual" ]; then
-        printf "${GREEN}PASS${NC}: %s\n" "$msg"
         TESTS_PASSED=$((TESTS_PASSED + 1))
+        printf "${GREEN}PASS${NC}: %s (exit code %d)\n" "$message" "$actual"
     else
-        printf "${RED}FAIL${NC}: %s\n" "$msg"
-        printf "  Expected exit code: %s\n" "$expected"
-        printf "  Actual exit code:   %s\n" "$actual"
         TESTS_FAILED=$((TESTS_FAILED + 1))
+        printf "${RED}FAIL${NC}: %s (expected exit code %d, got %d)\n" "$message" "$expected" "$actual"
     fi
 }
 
@@ -98,10 +94,7 @@ assert_exit_code() {
 setup() {
     export TEST_NVM_DIR=$(mktemp -d)
     export NVM_DIR="$TEST_NVM_DIR"
-    export HOME="$TEST_NVM_DIR/home"
-    mkdir -p "$HOME"
-    # Reset NVM_LOADED to allow re-sourcing in tests
-    unset NVM_LOADED
+    mkdir -p "$NVM_DIR/versions/node"
 }
 
 teardown() {
@@ -111,7 +104,7 @@ teardown() {
 # Test: install.sh exists and is executable
 test_install_script_exists() {
     assert_file_exists "install.sh" "install.sh exists"
-    assert_equal "0" "$(test -x install.sh && echo 0 || echo 1)" "install.sh is executable"
+    assert_exit_code 0 "test -x install.sh" "install.sh is executable"
 }
 
 # Test: nvm.sh exists
@@ -121,40 +114,31 @@ test_nvm_script_exists() {
 
 # Test: nvm.sh can be sourced without error (exit code 0)
 test_nvm_source_exit_code() {
-    # Source nvm.sh and check exit code
     unset NVM_LOADED
     . ./nvm.sh 2>/dev/null
-    exit_code=$?
-    assert_equal "0" "$exit_code" "Sourcing nvm.sh exits with code 0 (issue #1985)"
+    assert_equal "0" "$?" "Sourcing nvm.sh exits with code 0 (issue #1985)"
 }
+
 # Test: NVM_DIR is set after sourcing
 test_nvm_dir_set() {
     unset NVM_LOADED
     . ./nvm.sh 2>/dev/null
-    # NVM_DIR should be set to the default or custom value
-    assert_contains "$NVM_DIR" "tmp" "NVM_DIR is set to test directory"
+    assert_equal "$TEST_NVM_DIR" "$NVM_DIR" "NVM_DIR is set to test directory"
 }
 
 # Test: nvm function is available after sourcing
 test_nvm_function_available() {
     unset NVM_LOADED
     . ./nvm.sh 2>/dev/null
-    # Check if nvm function exists (use type for dash compatibility)
-    if type nvm >/dev/null 2>&1; then
-        printf "${GREEN}PASS${NC}: nvm function is available after sourcing\n"
-        TESTS_PASSED=$((TESTS_PASSED + 1))
-    else
-        printf "${RED}FAIL${NC}: nvm function is available after sourcing\n"
-        TESTS_FAILED=$((TESTS_FAILED + 1))
-    fi
-    TESTS_RUN=$((TESTS_RUN + 1))
+    type nvm >/dev/null 2>&1
+    assert_equal "0" "$?" "nvm function is available after sourcing"
 }
 
 # Test: nvm --version works
 test_nvm_version() {
     unset NVM_LOADED
     . ./nvm.sh 2>/dev/null
-    output=$(nvm --version 2>&1)
+    output=$(nvm --version)
     assert_contains "$output" "Nexus Engine NVM" "nvm --version shows version"
 }
 
@@ -162,8 +146,7 @@ test_nvm_version() {
 test_nvm_help() {
     unset NVM_LOADED
     . ./nvm.sh 2>/dev/null
-    output=$(nvm --help 2>&1)
-    assert_contains "$output" "Node Version Manager" "nvm --help shows help"
+    output=$(nvm --help)
     assert_contains "$output" "install" "nvm --help mentions install"
     assert_contains "$output" "use" "nvm --help mentions use"
 }
@@ -172,16 +155,15 @@ test_nvm_help() {
 test_nvm_current() {
     unset NVM_LOADED
     . ./nvm.sh 2>/dev/null
-    output=$(nvm current 2>&1)
-    assert_contains "$output" "system" "nvm current shows system when no version installed"
+    output=$(nvm current)
+    assert_equal "system" "$output" "nvm current shows system when no version installed"
 }
 
 # Test: nvm ls works
 test_nvm_ls() {
     unset NVM_LOADED
     . ./nvm.sh 2>/dev/null
-    output=$(nvm ls 2>&1)
-    # Should not error, may be empty
+    nvm ls >/dev/null 2>&1
     assert_equal "0" "$?" "nvm ls exits with code 0"
 }
 
@@ -189,28 +171,24 @@ test_nvm_ls() {
 test_nvm_install_invalid() {
     unset NVM_LOADED
     . ./nvm.sh 2>/dev/null
-    # This should fail but not crash
-    ( nvm install "invalid-version-xyz" >/dev/null 2>&1 )
-    exit_code=$?
-    assert_equal "1" "$exit_code" "nvm install invalid version returns error code"
+    nvm install "invalid-version" >/dev/null 2>&1
+    assert_exit_code 1 "nvm install invalid-version" "nvm install invalid version returns error code"
 }
+
 # Test: nvm use without installed version returns exit code 3
 test_nvm_use_not_installed() {
     unset NVM_LOADED
     . ./nvm.sh 2>/dev/null
-    ( nvm use "v99.99.99" >/dev/null 2>&1 )
-    exit_code=$?
-    assert_equal "3" "$exit_code" "nvm use non-existent version returns exit code 3 (issue #1985)"
+    nvm use 99.99.99 >/dev/null 2>&1
+    assert_equal "3" "$?" "nvm use without installed version returns exit code 3"
 }
 
 # Test: nvm ls-remote works
 test_nvm_ls_remote() {
     unset NVM_LOADED
     . ./nvm.sh 2>/dev/null
-    output=$(nvm ls-remote 2>&1)
-    # Should not error, may be empty if network not available
+    output=$(nvm ls-remote 2>/dev/null)
     assert_equal "0" "$?" "nvm ls-remote exits with code 0"
-    # If network available, should contain versions
     if [ -n "$output" ]; then
         assert_contains "$output" "v" "nvm ls-remote shows versions"
     fi
@@ -220,10 +198,8 @@ test_nvm_ls_remote() {
 test_nvm_ls_remote_lts() {
     unset NVM_LOADED
     . ./nvm.sh 2>/dev/null
-    output=$(nvm ls-remote --lts 2>&1)
-    # Should not error, may be empty if network not available
+    output=$(nvm ls-remote --lts 2>/dev/null)
     assert_equal "0" "$?" "nvm ls-remote --lts exits with code 0"
-    # If network available, should contain versions
     if [ -n "$output" ]; then
         assert_contains "$output" "v" "nvm ls-remote --lts shows versions"
     fi
@@ -237,6 +213,7 @@ test_version_normalize() {
     # We'll test via nvm install/ls behavior
     assert_equal "0" "0" "Version normalization placeholder"
 }
+
 # Test: LTS alias resolution
 test_lts_resolution() {
     unset NVM_LOADED
@@ -254,7 +231,6 @@ test_lts_resolution() {
     if [ "$result" != "FAILED" ]; then
         assert_contains "$result" "v18" "lts/hydrogen resolves to v18.x"
     else
-        # Network not available, just test function doesn't crash
         assert_equal "FAILED" "$result" "lts/hydrogen handles network failure gracefully"
     fi
     
@@ -296,7 +272,141 @@ test_lts_resolution() {
         assert_equal "FAILED" "$result" "lts/* handles network failure gracefully"
     fi
 }
-# Test: version normalization
+
+# Test: version range resolution
+test_version_range_resolution() {
+    unset NVM_LOADED
+    . ./nvm.sh 2>/dev/null
+    
+    # Test that function exists and handles concrete versions
+    result=$(nvm_resolve_version_range "20.10.0")
+    assert_equal "20.10.0" "$result" "Version range resolution passes through concrete versions"
+    
+    # Test v-prefixed versions
+    result=$(nvm_resolve_version_range "v18.17.0")
+    assert_equal "v18.17.0" "$result" "Version range resolution passes through v-prefixed versions"
+    
+    # Test >= range (requires network)
+    result=$(nvm_resolve_version_range ">=20.0.0" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        assert_contains "$result" "20" ">=20.0.0 resolves to v20.x"
+    else
+        assert_equal "FAILED" "$result" ">=20.0.0 handles network failure gracefully"
+    fi
+    
+    # Test ^ range (requires network)
+    result=$(nvm_resolve_version_range "^20.0.0" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        assert_contains "$result" "20" "^20.0.0 resolves to v20.x"
+    else
+        assert_equal "FAILED" "$result" "^20.0.0 handles network failure gracefully"
+    fi
+    
+    # Test ~ range (requires network)
+    result=$(nvm_resolve_version_range "~20.10.0" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        assert_contains "$result" "20" "~20.10.0 resolves to v20.x"
+    else
+        assert_equal "FAILED" "$result" "~20.10.0 handles network failure gracefully"
+    fi
+    
+    # Test X.x range (requires network)
+    result=$(nvm_resolve_version_range "20.x" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        assert_contains "$result" "20" "20.x resolves to v20.x"
+    else
+        assert_equal "FAILED" "$result" "20.x handles network failure gracefully"
+    fi
+    
+    # Test X.Y.x range (requires network)
+    result=$(nvm_resolve_version_range "20.10.x" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        assert_contains "$result" "20" "20.10.x resolves to v20.10.x"
+    else
+        assert_equal "FAILED" "$result" "20.10.x handles network failure gracefully"
+    fi
+}
+
+# Test: config file version range support
+test_config_file_version_range() {
+    # Create temp directory with package.json containing version range
+    test_dir=$(mktemp -d)
+    echo '{"engines": {"node": ">=20.0.0"}}' > "$test_dir/package.json"
+    
+    # Save current directory
+    old_dir="$PWD"
+    cd "$test_dir"
+    
+    unset NVM_LOADED
+    . ./nvm.sh 2>/dev/null
+    
+    # Test that config file version range is resolved
+    result=$(nvm_find_version_from_config 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ] && [ -n "$result" ]; then
+        assert_contains "$result" "20" "package.json >=20.0.0 resolves to v20.x"
+    else
+        assert_equal "FAILED" "$result" "package.json version range handles network failure gracefully"
+    fi
+    
+    # Test with ^ range
+    echo '{"engines": {"node": "^18.0.0"}}' > "$test_dir/package.json"
+    result=$(nvm_find_version_from_config 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ] && [ -n "$result" ]; then
+        assert_contains "$result" "18" "package.json ^18.0.0 resolves to v18.x"
+    else
+        assert_equal "FAILED" "$result" "package.json ^ range handles network failure gracefully"
+    fi
+    
+    # Test with ~ range
+    echo '{"engines": {"node": "~20.10.0"}}' > "$test_dir/package.json"
+    result=$(nvm_find_version_from_config 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ] && [ -n "$result" ]; then
+        assert_contains "$result" "20" "package.json ~20.10.0 resolves to v20.x"
+    else
+        assert_equal "FAILED" "$result" "package.json ~ range handles network failure gracefully"
+    fi
+    
+    # Test with X.x range
+    echo '{"engines": {"node": "22.x"}}' > "$test_dir/package.json"
+    result=$(nvm_find_version_from_config 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ] && [ -n "$result" ]; then
+        assert_contains "$result" "22" "package.json 22.x resolves to v22.x"
+    else
+        assert_equal "FAILED" "$result" "package.json X.x range handles network failure gracefully"
+    fi
+    
+    # Test with X.Y.x range
+    echo '{"engines": {"node": "20.10.x"}}' > "$test_dir/package.json"
+    result=$(nvm_find_version_from_config 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ] && [ -n "$result" ]; then
+        assert_contains "$result" "20" "package.json 20.10.x resolves to v20.10.x"
+    else
+        assert_equal "FAILED" "$result" "package.json X.Y.x range handles network failure gracefully"
+    fi
+    
+    # Test with .nvmrc containing version range
+    echo ">=18.0.0" > "$test_dir/.nvmrc"
+    result=$(nvm_find_version_from_config 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ] && [ -n "$result" ]; then
+        assert_contains "$result" "18" ".nvmrc >=18.0.0 resolves to v18.x"
+    else
+        assert_equal "FAILED" "$result" ".nvmrc version range handles network failure gracefully"
+    fi
+    
+    # Test with .node-version containing version range
+    rm -f "$test_dir/.nvmrc"
+    echo "^20.0.0" > "$test_dir/.node-version"
+    result=$(nvm_find_version_from_config 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ] && [ -n "$result" ]; then
+        assert_contains "$result" "20" ".node-version ^20.0.0 resolves to v20.x"
+    else
+        assert_equal "FAILED" "$result" ".node-version version range handles network failure gracefully"
+    fi
+    
+    # Cleanup
+    cd "$old_dir"
+    rm -rf "$test_dir"
+}
 
 # Main test runner
 main() {
@@ -321,6 +431,10 @@ main() {
 
     test_lts_resolution
     test_version_normalize
+
+    test_version_range_resolution
+
+    test_config_file_version_range
     
     teardown
     

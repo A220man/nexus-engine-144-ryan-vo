@@ -86,6 +86,125 @@ nvm_version_compare() {
     fi
 }
 
+# Utility: resolve version range to latest matching version
+# Supports: >=X.Y.Z, >X.Y.Z, <=X.Y.Z, <X.Y.Z, ^X.Y.Z, ~X.Y.Z, X.Y.x, X.x, *
+# Filters out pre-release versions (alpha, beta, rc, etc.)
+nvm_resolve_version_range() {
+    range="$1"
+    
+    # If it is already a concrete version (no range operators), return as-is
+    # Range operators: < >= ^ ~ * or patterns ending in .x
+    case "$range" in
+        *['<>=^~*']*) ;;
+        *.x) ;;
+        *) echo "$range"; return 0 ;;
+    esac
+    
+    # Parse operator to determine whether to get min or max matching version
+    # >= and > want minimum (first match), others want maximum (last match)
+    op=""
+    case "$range" in
+        \>=*) op=">=" ;;
+        \>*) op=">" ;;
+        \<=*) op="<=" ;;
+        \<*) op="<" ;;
+        \^*) op="^" ;;
+        \~*) op="~" ;;
+        *) op="other" ;;
+    esac
+    
+    # Fetch all versions from API
+    versions=$(curl -sL "$NVM_NODEJS_ORG_MIRROR/index.json" | \
+        grep -o '"version":"[^"]*"' | \
+        sed 's/"version":"//;s/"//' | \
+        sort -Vu)
+    
+    if [ -z "$versions" ]; then
+        nvm_err "Failed to fetch versions from API"
+        return 1
+    fi
+    
+    # Parse range and find matching versions
+    # Use awk for version comparison
+    # Filter out pre-release versions (those containing -)
+    echo "$versions" | grep -v -- '-' | awk -v range="$range" '
+    BEGIN {
+        # Parse range
+        op = ""
+        ver = range
+        if (match(range, /^([<>=^~]+)(.*)/, arr)) {
+            op = arr[1]
+            ver = arr[2]
+        }
+        
+        # Normalize version (strip v prefix)
+        gsub(/^v/, "", ver)
+        split(ver, vparts, ".")
+        vmajor = (vparts[1] != "" ? vparts[1] : 0)
+        vminor = (vparts[2] != "" ? vparts[2] : 0)
+        vpatch = (vparts[3] != "" ? vparts[3] : 0)
+    }
+    {
+        version = $0
+        gsub(/^v/, "", version)
+        split(version, parts, ".")
+        major = (parts[1] != "" ? parts[1] : 0)
+        minor = (parts[2] != "" ? parts[2] : 0)
+        patch = (parts[3] != "" ? parts[3] : 0)
+        
+        is_match = 0
+        if (op == ">=") {
+            if (major > vmajor) is_match = 1
+            else if (major == vmajor && minor > vminor) is_match = 1
+            else if (major == vmajor && minor == vminor && patch >= vpatch) is_match = 1
+        } else if (op == ">") {
+            if (major > vmajor) is_match = 1
+            else if (major == vmajor && minor > vminor) is_match = 1
+            else if (major == vmajor && minor == vminor && patch > vpatch) is_match = 1
+        } else if (op == "<=") {
+            if (major < vmajor) is_match = 1
+            else if (major == vmajor && minor < vminor) is_match = 1
+            else if (major == vmajor && minor == vminor && patch <= vpatch) is_match = 1
+        } else if (op == "<") {
+            if (major < vmajor) is_match = 1
+            else if (major == vmajor && minor < vminor) is_match = 1
+            else if (major == vmajor && minor == vminor && patch < vpatch) is_match = 1
+        } else if (op == "^") {
+            # ^X.Y.Z means >=X.Y.Z <X+1.0.0 (or >=0.Y.Z <0.Y+1.0 if X=0)
+            if (vmajor == 0) {
+                if (major == vmajor && minor == vminor && patch >= vpatch) is_match = 1
+            } else {
+                if (major == vmajor && (minor > vminor || (minor == vminor && patch >= vpatch))) is_match = 1
+            }
+        } else if (op == "~") {
+            # ~X.Y.Z means >=X.Y.Z <X.Y+1.0
+            if (major == vmajor && minor == vminor && patch >= vpatch) is_match = 1
+        } else if (op == "*" || range == "*") {
+            is_match = 1
+        } else if (match(ver, /^([0-9]+)\.x$/)) {
+            # X.x - any version with major X
+            if (major == vmajor) is_match = 1
+        } else if (match(ver, /^([0-9]+)\.([0-9]+)\.x$/)) {
+            # X.Y.x - any version with major X and minor Y
+            if (major == vmajor && minor == vminor) is_match = 1
+        }
+        
+        if (is_match) {
+            print version
+        }
+    }
+    ' | sort -V > /tmp/nvm_versions_$$.txt
+    
+    # For >= and > operators, return minimum (first) matching version
+    # For all others (<=, <, ^, ~, *, X.x, X.Y.x), return maximum (last)
+    if [ "$op" = ">=" ] || [ "$op" = ">" ]; then
+        head -1 /tmp/nvm_versions_$$.txt
+    else
+        tail -1 /tmp/nvm_versions_$$.txt
+    fi
+    rm -f /tmp/nvm_versions_$$.txt
+}
+
 # Get installed versions
 nvm_ls_installed() {
     versions_dir="$NVM_DIR/versions/node"
@@ -128,39 +247,41 @@ nvm_ls_remote_lts() {
 }
 # Utility: resolve LTS alias to version
 # Supports: lts/*, lts/lithium, lts/krypton, lts/jod, lts/iron, lts/hydrogen, lts/gallium, lts/fermium, lts/erbium, lts/dubnium, lts/carbon, lts/boron, lts/argon
+# Case-insensitive matching for LTS names
 nvm_resolve_lts_alias() {
     alias="$1"
     case "$alias" in
-        lts/*)
-            # Extract LTS name
-            lts_name="${alias#lts/}"
-            if [ "$lts_name" = "*" ]; then
-                # Get latest LTS (last in version-sorted list)
-                nvm_ls_remote_lts | tail -1
-                return
-            fi
-            # Map LTS names to version patterns
-            case "$lts_name" in
-                lithium) pattern="v26\." ;;
-                krypton) pattern="v24\." ;;
-                jod) pattern="v22\." ;;
-                iron) pattern="v20\." ;;
-                hydrogen) pattern="v18\." ;;
-                gallium) pattern="v16\." ;;
-                fermium) pattern="v14\." ;;
-                erbium) pattern="v12\." ;;
-                dubnium) pattern="v10\." ;;
-                carbon) pattern="v8\." ;;
-                boron) pattern="v6\." ;;
-                argon) pattern="v4\." ;;
-                *) pattern="v${lts_name}\." ;;
-            esac
-            nvm_ls_remote_lts | grep -E "^$pattern" | head -1
-            ;;
-        *)
-            echo "$alias"
-            ;;
+        lts/*) ;;
+        *) echo "$alias"; return 0 ;;
     esac
+    
+    lts_name=$(echo "$alias" | sed 's/^lts\///')
+    
+    # Fetch LTS data from Node.js releases API
+    lts_data=$(curl -sL "$NVM_NODEJS_ORG_MIRROR/index.json" | \
+        grep -o '"version":"[^"]*","date":"[^"]*","files":\[[^]]*\],"npm":"[^"]*","v8":"[^"]*","uv":"[^"]*","zlib":"[^"]*","openssl":"[^"]*","modules":"[^"]*","lts":"[^"]*","security":[^}]*' | \
+        grep '"lts":"[^"]*"' | \
+        grep -v '"lts":false' | \
+        grep -v '"lts":""')
+    
+    if [ -z "$lts_data" ]; then
+        nvm_err "Failed to fetch LTS data from API"
+        return 1
+    fi
+    
+    if [ "$lts_name" = "*" ]; then
+        # Latest LTS - get the highest version
+        echo "$lts_data" | sed 's/.*"version":"\([^"]*\)".*/\1/' | sort -V | tail -1
+    else
+        # Named LTS - find matching version (case-insensitive)
+        echo "$lts_data" | awk -v lts_name="$lts_name" '
+            BEGIN { IGNORECASE = 1 }
+            $0 ~ "\"lts\":\"" lts_name "\"" {
+                match($0, /"version":"([^"]*)"/, arr)
+                print arr[1]
+            }
+        ' | sort -V | tail -1
+    fi
 }
 
 # Install Node.js version
@@ -174,6 +295,9 @@ nvm_install() {
     
     # Resolve LTS aliases (e.g., lts/hydrogen, lts/*, lts/iron)
     version=$(nvm_resolve_lts_alias "$version")
+    
+    # Resolve version ranges (e.g., >=20.0.0, ^20.0.0, 20.x)
+    version=$(nvm_resolve_version_range "$version")
     
     version=$(nvm_normalize_version "$version")
     
@@ -266,6 +390,9 @@ nvm_use() {
     # Resolve LTS aliases (e.g., lts/hydrogen, lts/*, lts/iron)
     version=$(nvm_resolve_lts_alias "$version")
     
+    # Resolve version ranges (e.g., >=20.0.0, ^20.0.0, 20.x)
+    version=$(nvm_resolve_version_range "$version")
+    
     version=$(nvm_normalize_version "$version")
     
     # Check if installed
@@ -294,6 +421,7 @@ nvm_find_version_from_config() {
             version=$(cat "$dir/.nvmrc" 2>/dev/null | tr -d '[:space:]')
             if [ -n "$version" ]; then
                 version=$(nvm_resolve_lts_alias "$version")
+                version=$(nvm_resolve_version_range "$version")
                 echo "$version"
                 return 0
             fi
@@ -304,6 +432,7 @@ nvm_find_version_from_config() {
             version=$(cat "$dir/.node-version" 2>/dev/null | tr -d '[:space:]')
             if [ -n "$version" ]; then
                 version=$(nvm_resolve_lts_alias "$version")
+                version=$(nvm_resolve_version_range "$version")
                 echo "$version"
                 return 0
             fi
@@ -314,6 +443,7 @@ nvm_find_version_from_config() {
             version=$(grep -o '"node"[[:space:]]*:[[:space:]]*"[^"]*"' "$dir/package.json" 2>/dev/null | head -1 | sed 's/.*"node"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
             if [ -n "$version" ]; then
                 version=$(nvm_resolve_lts_alias "$version")
+                version=$(nvm_resolve_version_range "$version")
                 echo "$version"
                 return 0
             fi
@@ -415,7 +545,7 @@ Usage:
 Config Files (auto-detected by 'nvm use' without arguments):
   .nvmrc              Node version (e.g., "18.17.0" or "lts/hydrogen", "lts/iron", "lts/jod", "lts/krypton", "lts/lithium", "lts/*")
   .node-version       Node version (same format as .nvmrc)
-  package.json        engines.node field (e.g., ">=18.0.0")
+  package.json        engines.node field (e.g., ">=18.0.0", "^20.0.0", "20.x")
 
 Environment Variables:
   NVM_DIR             NVM installation directory (default: ~/.nvm)
@@ -427,6 +557,9 @@ Examples:
   nvm install lts/hydrogen
   nvm install lts/iron
   nvm install lts/lithium
+  nvm install ">=20.0.0"
+  nvm install "^20.0.0"
+  nvm install "20.x"
   nvm use 20
   nvm use              # Auto-detect from config files
   nvm alias default 20

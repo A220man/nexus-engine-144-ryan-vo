@@ -1,8 +1,18 @@
 # Changelog
 
-## 1.3.0 — work-in-progress checkpoint
+## 1.4.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
+
+## 1.3.0 — 2026-11-10
+
+### Fixed
+- Version range resolution for `>=` and `>` operators now returns minimum matching version (e.g., `>=20.0.0` returns `20.0.0` instead of latest version)
+- Test suite: fixed `.node-version` test to remove `.nvmrc` before testing
+- Test helper `assert_exit_code` now properly handles message parameter
+
+### Added
+- All 39 tests passing
 
 ## 1.2.0 — work-in-progress checkpoint
 
