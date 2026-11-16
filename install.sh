@@ -161,7 +161,7 @@ add_source_to_profile() {
     touch "$profile"
     
     # Check if already present
-    if grep -q "nexus-engine-nvm" "$profile" 2>/dev/null; then
+    if grep -qi "nexus-engine-nvm" "$profile" 2>/dev/null; then
         info "NVM source already present in $profile"
         return 0
     fi
@@ -190,7 +190,7 @@ add_fish_config() {
     mkdir -p "$config_dir"
     touch "$config_file"
     
-    if grep -q "nexus-engine-nvm" "$config_file" 2>/dev/null; then
+    if grep -qi "nexus-engine-nvm" "$config_file" 2>/dev/null; then
         info "NVM source already present in $config_file"
         return 0
     fi
