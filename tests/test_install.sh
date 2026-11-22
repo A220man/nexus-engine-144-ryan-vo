@@ -262,6 +262,14 @@ test_lts_resolution() {
     else
         assert_equal "FAILED" "$result" "lts/krypton handles network failure gracefully"
     fi
+
+    # Test more LTS aliases
+    result=$(nvm_resolve_lts_alias "lts/gallium" 2>/dev/null || echo "FAILED")
+    if [ "$result" != "FAILED" ]; then
+        assert_contains "$result" "v" "lts/gallium resolves to a version"
+    else
+        assert_equal "FAILED" "$result" "lts/gallium handles network failure gracefully"
+    fi
     
     # Test lts/* (latest LTS)
     result=$(nvm_resolve_lts_alias "lts/*" 2>/dev/null || echo "FAILED")
