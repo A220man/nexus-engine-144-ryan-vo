@@ -87,16 +87,18 @@ nvm_version_compare() {
 }
 
 # Utility: resolve version range to latest matching version
-# Supports: >=X.Y.Z, >X.Y.Z, <=X.Y.Z, <X.Y.Z, ^X.Y.Z, ~X.Y.Z, X.Y.x, X.x, *
+# Supports: >=X.Y.Z, >X.Y.Z, <=X.Y.Z, <X.Y.Z, ^X.Y.Z, ~X.Y.Z, X.Y.x, X.x, X.Y, X, *
+# Concrete X.Y.Z is returned unchanged; X and X.Y resolve to the latest match.
 # Filters out pre-release versions (alpha, beta, rc, etc.)
 nvm_resolve_version_range() {
     range="$1"
     
-    # If it is already a concrete version (no range operators), return as-is
+    # Concrete X.Y.Z is already exact; X and X.Y are prefixes and need resolving.
     # Range operators: < >= ^ ~ * or patterns ending in .x
     case "$range" in
         *['<>=^~*']*) ;;
         *.x) ;;
+        [0-9]|[0-9].[0-9]|[0-9].[0-9].*) echo "$range"; return 0 ;;
         *) echo "$range"; return 0 ;;
     esac
     
@@ -127,6 +129,8 @@ nvm_resolve_version_range() {
     # Parse range and find matching versions
     # Use awk for version comparison
     # Filter out pre-release versions (those containing -)
+    versions_tmp="${TMPDIR:-/tmp}/nvm_versions_$$.txt"
+
     echo "$versions" | grep -v -- '-' | awk -v range="$range" '
     BEGIN {
         # Parse range
@@ -181,6 +185,12 @@ nvm_resolve_version_range() {
             if (major == vmajor && minor == vminor && patch >= vpatch) is_match = 1
         } else if (op == "*" || range == "*") {
             is_match = 1
+        } else if (ver ~ /^[0-9]+$/) {
+            # X - any version with major X
+            if (major == vmajor) is_match = 1
+        } else if (ver ~ /^[0-9]+\.[0-9]+$/) {
+            # X.Y - any version with major X and minor Y
+            if (major == vmajor && minor == vminor) is_match = 1
         } else if (match(ver, /^([0-9]+)\.x$/)) {
             # X.x - any version with major X
             if (major == vmajor) is_match = 1
@@ -193,16 +203,16 @@ nvm_resolve_version_range() {
             print version
         }
     }
-    ' | sort -V > /tmp/nvm_versions_$$.txt
-    
+    ' | sort -V > "$versions_tmp"
+
     # For >= and > operators, return minimum (first) matching version
-    # For all others (<=, <, ^, ~, *, X.x, X.Y.x), return maximum (last)
+    # For all others (<=, <, ^, ~, *, X, X.Y, X.x, X.Y.x), return maximum (last)
     if [ "$op" = ">=" ] || [ "$op" = ">" ]; then
-        head -1 /tmp/nvm_versions_$$.txt
+        head -1 "$versions_tmp"
     else
-        tail -1 /tmp/nvm_versions_$$.txt
+        tail -1 "$versions_tmp"
     fi
-    rm -f /tmp/nvm_versions_$$.txt
+    rm -f "$versions_tmp"
 }
 
 # Get installed versions
