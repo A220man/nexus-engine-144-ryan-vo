@@ -1,6 +1,6 @@
 {
   "name": "nexus-engine-nvm-frontend",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Nexus Engine NVM - Frontend UI for Node Version Manager",
   "type": "module",
   "author": {

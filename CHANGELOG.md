@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
 ## 1.6.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
@@ -71,6 +75,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No credentials or secrets in codebase
 
 ## [Unreleased]
+
+### 1.6.1 — LTS Alias Improvement
+### Added
+- Explicit lts/* resolution in nvm_resolve_lts_alias()
+- Fetches latest LTS version from Node.js releases API
+- All 40 install tests pass, including lts/* resolution
+### Fixed
+- lts/* now resolves correctly to latest LTS version
 
 ### Added
 - LTS alias resolution for `nvm install` and `nvm use` commands
