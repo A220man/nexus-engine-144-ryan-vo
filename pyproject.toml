@@ -1,6 +1,6 @@
 [project]
 name = "nexus-engine-nvm"
-version = "1.6.0"
+version = "1.7.0"
 description = "POSIX-compliant Node Version Manager"
 readme = "README.md"
 license = {text = "MIT"}

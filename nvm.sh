@@ -260,6 +260,14 @@ nvm_ls_remote_lts() {
 # Case-insensitive matching for LTS names
 nvm_resolve_lts_alias() {
     alias="$1"
+    # Handle lts/* explicitly - resolve to latest LTS
+    if [ "$alias" = "lts/*" ]; then
+        # Simple resolution: fetch latest LTS version
+        lts_data=$(curl -sL "$NVM_NODEJS_ORG_MIRROR/index.json" | grep -o "lts.*" | head -1)
+        if [ -n "$lts_data" ]; then
+            echo "$lts_data" | grep -o "v[0-9][0-9]*\.[0-9][0-9]*\.[0-9]*" | tail -1
+        fi
+    fi
     case "$alias" in
         lts/*) ;;
         *) echo "$alias"; return 0 ;;
